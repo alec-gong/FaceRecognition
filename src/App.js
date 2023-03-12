@@ -3,24 +3,82 @@ import Navigation from './components/Navigation/Navigation';
 import Logo from './components/Logo/Logo';
 import ImageLinkForm from './components/ImageLinkForm/ImageLinkForm';
 import Rank from './components/Rank/Rank';
+import FaceRecognition from './components/FaceRecognition/FaceRecognition';
 import './App.css';
 import 'tachyons';
-import { useCallback } from "react";
+//import { useCallback } from "react";
 import Particles from "react-tsparticles";
+import Clarifai from 'clarifai';
 import { loadFull } from "tsparticles";
 
-// function App() {
-//   /*ts particles set up*/
-//   const particlesInit = useCallback(async engine => {
-//     console.log(engine);
-//     await loadFull(engine);
-//   }, []);
-
-//   const particlesLoaded = useCallback(async container => {
-//       await console.log(container);
-//   }, []);
-
 class App extends Component {
+    constructor() {
+        super();
+        this.state = {
+            input: '',
+            imageUrl: '',
+            box: {},
+        }
+    }
+
+    calculateFaceLocation = (data) => {
+        const clarifaiFace = JSON.parse(data, null, 2).outputs[0]
+            .data.regions[0].region_info.bounding_box;
+        const image = document.getElementById('inputimage');
+        const width = Number(image.width);
+        const height = Number(image.height);
+        return {
+          leftCol: clarifaiFace.left_col * width,
+          topRow: clarifaiFace.top_row * height,
+          rightCol: width - (clarifaiFace.right_col * width),
+          bottomRow: height - (clarifaiFace.bottom_row * height)
+        }
+      }
+    
+    displayFaceBox = (box) => {
+        this.setState({box: box});
+    }
+
+    onInputChange = (event) => {
+        this.setState({input: event.target.value});
+    }
+    
+    onButtonSubmit = () => {
+        this.setState({imageUrl: this.state.input});
+        
+        const raw = JSON.stringify({
+            "user_app_id": {
+            "user_id": "monkebrain",
+            "app_id": "my-first-application"
+            },
+            "inputs": [
+                {
+                    "data": {
+                        "image": {
+                            "url": this.state.input
+                        }
+                    }
+                }
+            ]
+        });
+        
+        const requestOptions = {
+            method: 'POST',
+            headers: {
+                'Accept': 'application/json',
+                'Authorization': 'Key 4d4b784a3488438a93ee6c538cba7c86',
+            },
+            body: raw
+        };
+        
+        fetch(`https://api.clarifai.com/v2/models/f76196b43bbd45c99b4f3cd8e8b40a8a/outputs`, requestOptions)
+            .then(response => response.text())
+            // .then(result => this.displayFaceBox(this.calculateFaceLocation(result)))
+            .then(result => console.log(result))
+            .catch(error => console.log('error', error));
+    
+    }
+
     particlesInit = async engine => {
       console.log(engine);
       await loadFull(engine);
@@ -31,6 +89,7 @@ class App extends Component {
     };
   
     render() {
+        const { imageUrl, box } = this.state;
         return (
             <div className="App">
                 <Particles className='particles'
@@ -108,9 +167,11 @@ class App extends Component {
                 <Navigation></Navigation> 
                 <Logo></Logo>
                 <Rank></Rank>
-                <ImageLinkForm></ImageLinkForm>
-            {/*
-                <FaceRecognition></FaceRecognition>*/}
+                <ImageLinkForm 
+                    onInputChange={this.onInputChange} 
+                    onButtonSubmit={this.onButtonSubmit}
+                ></ImageLinkForm>
+                <FaceRecognition box={box} imageUrl={imageUrl}></FaceRecognition>
             </div>
         );
     }
