@@ -73,8 +73,9 @@ class App extends Component {
         
         fetch(`https://api.clarifai.com/v2/models/f76196b43bbd45c99b4f3cd8e8b40a8a/outputs`, requestOptions)
             .then(response => response.text())
-            // .then(result => this.displayFaceBox(this.calculateFaceLocation(result)))
-            .then(result => console.log(result))
+            .then(result => this.displayFaceBox(this.calculateFaceLocation(result)))
+            // .then(result => console.log(result))
+            //.then(result => console.log(JSON.parse(result, null, 2)))
             .catch(error => console.log('error', error));
     
     }
